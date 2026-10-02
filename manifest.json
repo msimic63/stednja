@@ -1,0 +1,14 @@
+{
+  "name": "Štednja",
+  "short_name": "Štednja",
+  "start_url": "/stednja/",
+  "scope": "/stednja/",
+  "display": "standalone",
+  "background_color": "#03140f",
+  "theme_color": "#03140f",
+  "lang": "hr",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
