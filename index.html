@@ -156,7 +156,7 @@
 
       <div class="info-box">
         <div class="info-title">Kako radi</div>
-        <div class="info-text">Redak <b>0</b> je početno stanje godine – automatski se prenosi kao zadnje ukupno stanje prethodne godine i zaključan je (ručno se upisuje samo za prvu godinu vođenja). U mjesecima 1–12 upisuješ stanje <b>tekućeg računa</b>; zaključano polje <b>Stanje</b> = tekući račun + ukupna štednja (sve uplate, neovisno o datumu). Razlika = stanje mjeseca − prethodno stanje.</div>
+        <div class="info-text">Redak <b>0</b> je početno stanje godine – automatski se prenosi zadnje ukupno stanje prethodne godine, a <b>tekući račun</b> u tom retku jednak je stanju 0; oba polja su zaključana (ručno se upisuju samo za prvu godinu vođenja). U mjesecima 1–12 upisuješ stanje <b>tekućeg računa</b>; zaključano polje <b>Stanje</b> = tekući račun + ukupna štednja (sve uplate, neovisno o datumu). Razlika = stanje mjeseca − prethodno stanje.</div>
       </div>
 
       <div class="sync-status" id="sync-msg">Podaci se spremaju lokalno. Prijavi se za Cloud.</div>
@@ -290,7 +290,7 @@ const totalSavings = () => r2(data.savings.reduce((s, x) => s + (Number(x.amount
 function carriedStart(y, depth = 0) {
   if (depth > 100 || !Array.isArray(data.years[y - 1])) return null;
   const prev = calcYear(y - 1, depth + 1);
-  return prev.last ? prev.last.total : null;
+  return prev.last ? { tekuci: prev.last.total, total: prev.last.total } : null;   // tekući u retku 0 = stanje 0
 }
 
 /* Izračun jedne godine */
@@ -298,7 +298,7 @@ function calcYear(y, depth = 0) {
   const t = yearArr(y), sav = totalSavings();
   const carried = carriedStart(y, depth);
   const rows = t.map((v, m) => {
-    if (m === 0 && carried != null) return { m, tekuci: null, carried: true, total: carried, diff: null };
+    if (m === 0 && carried != null) return { m, tekuci: carried.tekuci, carried: true, total: carried.total, diff: null };
     return { m, tekuci: v, carried: false, total: filled(v) ? r2(v + sav) : null, diff: null };
   });
   let prev = rows[0].total;           // početno stanje
@@ -379,7 +379,7 @@ function renderMonths() {
   const y = viewYear, c = calcYear(y);
   $("month-list").innerHTML = c.rows.map(r => {
     const input = r.carried
-      ? `<div class="m-carry">🔒 prijenos<br>iz ${y - 1}.</div>`
+      ? `<div class="field sm locked" title="Zaključano – prenosi se iz ${y - 1}.">🔒 ${r.tekuci != null ? nf.format(r.tekuci) : "—"}</div>`
       : `<input class="field sm" type="text" inputmode="decimal" placeholder="—" value="${toInput(r.tekuci)}"
           aria-label="Tekući račun – ${MONTHS[r.m]}" onchange="setMonth(${r.m}, this)" onfocus="this.select()"/>`;
     return `
