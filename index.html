@@ -54,20 +54,24 @@
   .stat-card{background:rgba(255,255,255,0.03);border:1px solid var(--cardBorder);border-radius:18px;padding:14px;}
   .stat-label{font-size:11px;color:var(--w50);font-weight:700;letter-spacing:0.8px;text-transform:uppercase;margin-bottom:6px;}
   .stat-value{font-size:18px;font-weight:800;line-height:1.1;font-variant-numeric:tabular-nums;}
-  .m-head,.m-row{display:grid;grid-template-columns:30px minmax(0,1fr) 92px;gap:8px;align-items:center;}
-  .m-head{font-size:10px;font-weight:700;letter-spacing:0.8px;text-transform:uppercase;color:var(--w50);padding:2px 0 6px;}
+  .m-head,.m-row{display:grid;grid-template-columns:34px minmax(0,1fr) minmax(0,1fr) 82px;gap:6px;align-items:center;}
+  .m-head{font-size:10px;font-weight:700;letter-spacing:0.6px;text-transform:uppercase;color:var(--w50);padding:2px 0 6px;}
+  .m-head span:nth-child(2),.m-head span:nth-child(3){padding-left:4px;}
   .m-head span:last-child{text-align:right;}
-  .m-row{padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
+  .m-row{padding:7px 0;border-bottom:1px solid rgba(255,255,255,0.05);}
   .m-row:last-child{border-bottom:none;}
-  .m-num{font-size:15px;font-weight:800;color:var(--w50);text-align:center;font-variant-numeric:tabular-nums;}
+  .m-num{font-size:15px;font-weight:800;color:var(--w50);text-align:center;font-variant-numeric:tabular-nums;line-height:1.1;}
+  .m-short{display:block;font-size:9px;font-weight:700;letter-spacing:0.3px;text-transform:uppercase;margin-top:2px;}
   .m-row.start .m-num{color:var(--gold);}
-  .m-name{font-size:11px;color:var(--w50);font-weight:600;margin-bottom:3px;}
-  .m-extra{font-size:11px;color:var(--gold);font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums;}
-  .m-diff{text-align:right;font-size:14px;font-weight:800;font-variant-numeric:tabular-nums;}
+  .m-carry{font-size:11px;color:var(--gold);font-weight:700;line-height:1.3;padding-left:4px;}
+  .m-diff{text-align:right;font-size:13px;font-weight:800;font-variant-numeric:tabular-nums;}
   .pos{color:var(--accent);} .neg{color:var(--neg);} .mute{color:var(--w50);}
   .field{width:100%;padding:10px 12px;border-radius:12px;border:1.5px solid rgba(255,255,255,0.15);font-size:16px;font-weight:700;text-align:right;outline:none;background:rgba(0,0,0,0.25);color:var(--white);color-scheme:dark;font-variant-numeric:tabular-nums;}
   .field:focus{border-color:var(--accent);}
   .field.left{text-align:left;font-weight:600;}
+  .field.sm{font-size:14px;padding:9px 8px;}
+  .field.locked{background:rgba(255,255,255,0.04);border-style:dashed;border-color:rgba(255,255,255,0.14);color:var(--w80);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2;}
+  .m-row.start .field.locked{color:var(--gold);border-color:rgba(255,196,40,0.35);}
   .sum-row{display:flex;justify-content:space-between;align-items:center;padding:12px 0 2px;margin-top:4px;border-top:1px solid rgba(255,255,255,0.12);font-size:15px;font-weight:800;}
   .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;}
   .form-grid label{font-size:11px;color:var(--w50);font-weight:700;letter-spacing:0.6px;text-transform:uppercase;display:block;margin-bottom:5px;}
@@ -145,14 +149,14 @@
 
       <div class="card">
         <div class="card-title"><span>📒 Stanje po mjesecima</span></div>
-        <div class="m-head"><span>#</span><span>Tekući račun</span><span>Razlika</span></div>
+        <div class="m-head"><span>#</span><span>Tekući račun</span><span>Stanje 🔒</span><span>Razlika</span></div>
         <div id="month-list"></div>
         <div class="sum-row"><span>Zbroj razlika</span><span id="sum-diff">0,00 €</span></div>
       </div>
 
       <div class="info-box">
         <div class="info-title">Kako radi</div>
-        <div class="info-text">Redak <b>0</b> je početno stanje godine, 1–12 su mjeseci. Upisuješ samo stanje tekućeg računa; app mu pribraja svu štednju upisanu u tabu Štednja do tog mjeseca (žuti redak ispod). Razlika = ukupno stanje − zadnje upisano stanje prije njega.</div>
+        <div class="info-text">Redak <b>0</b> je početno stanje godine – automatski se prenosi kao zadnje ukupno stanje prethodne godine i zaključan je (ručno se upisuje samo za prvu godinu vođenja). U mjesecima 1–12 upisuješ stanje <b>tekućeg računa</b>; zaključano polje <b>Stanje</b> = tekući račun + ukupna štednja (sve uplate, neovisno o datumu). Razlika = stanje mjeseca − prethodno stanje.</div>
       </div>
 
       <div class="sync-status" id="sync-msg">Podaci se spremaju lokalno. Prijavi se za Cloud.</div>
@@ -236,14 +240,17 @@ const UID_KEY = "stednja-uid";
 const REDIRECT_KEY = "stednja-auth-pending";
 const REDIRECT_FAILED_KEY = "stednja-redirect-failed";
 const MONTHS = ["Početno stanje","Siječanj","Veljača","Ožujak","Travanj","Svibanj","Lipanj","Srpanj","Kolovoz","Rujan","Listopad","Studeni","Prosinac"];
+const MONTHS_SHORT = ["Poč","Sij","Velj","Ožu","Tra","Svi","Lip","Srp","Kol","Ruj","Lis","Stu","Pro"];
 
 /* ===== STANJE =====
    years:   { "2026": [b0, b1 … b12] }  – stanje tekućeg računa (null = nije upisano)
+            b0 se koristi samo za prvu godinu vođenja; inače se početno stanje prenosi iz prethodne godine
    savings: [{ id, date:"YYYY-MM-DD", amount, note }]  – uplate na štednju
-   history: { "2025": 11290.79 }  – ručno upisano ušteđeno za ranije godine */
+   history: { "2025": 11290.79 }  – ručno upisano ušteđeno za ranije godine
+   Prikazana godina (viewYear) se ne sprema – app uvijek kreće od tekuće godine. */
 const thisYear = new Date().getFullYear();
-const defaults = () => ({ years: {}, savings: [], history: {}, year: thisYear });
-let data = defaults(), user = null, db = null, firebaseReady = false, saveTimer = null, unsubCloud = null;
+const defaults = () => ({ years: {}, savings: [], history: {} });
+let data = defaults(), viewYear = thisYear, user = null, db = null, firebaseReady = false, saveTimer = null, unsubCloud = null;
 const isStandalone = () => window.matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
 
 /* ===== TABOVI ===== */
@@ -276,23 +283,25 @@ const yearArr = y => {
 };
 const filled = v => typeof v === "number" && v !== 0;   // 0 = prazno, kao u tablici (IF(B>0…))
 
-/* Kumulativna štednja zaključno s (godina, mjesec). Mjesec 0 = sve prije te godine. */
-function savingsUpTo(y, m) {
-  const limit = y * 100 + m;   // m = 0 → yy*100+mm <= y*100 vrijedi samo za ranije godine
-  return data.savings.reduce((s, x) => {
-    const [yy, mm] = (x.date || "").split("-").map(Number);
-    return yy && yy * 100 + mm <= limit ? s + (Number(x.amount) || 0) : s;
-  }, 0);
+/* Ukupna štednja – sve uplate, neovisno o datumu */
+const totalSavings = () => r2(data.savings.reduce((s, x) => s + (Number(x.amount) || 0), 0));
+
+/* Početno stanje prenešeno iz prethodne godine (zadnje ukupno stanje), ili null ako prethodne godine nema */
+function carriedStart(y, depth = 0) {
+  if (depth > 100 || !Array.isArray(data.years[y - 1])) return null;
+  const prev = calcYear(y - 1, depth + 1);
+  return prev.last ? prev.last.total : null;
 }
 
-/* Izračun jedne godine – ista logika kao stupci B, C i D1 u tablici */
-function calcYear(y) {
-  const t = yearArr(y);
+/* Izračun jedne godine */
+function calcYear(y, depth = 0) {
+  const t = yearArr(y), sav = totalSavings();
+  const carried = carriedStart(y, depth);
   const rows = t.map((v, m) => {
-    const sav = filled(v) ? savingsUpTo(y, m) : 0;
-    return { m, tekuci: v, sav, total: filled(v) ? r2(v + sav) : null, diff: null };
+    if (m === 0 && carried != null) return { m, tekuci: null, carried: true, total: carried, diff: null };
+    return { m, tekuci: v, carried: false, total: filled(v) ? r2(v + sav) : null, diff: null };
   });
-  let prev = rows[0].total;           // C1 = početno stanje
+  let prev = rows[0].total;           // početno stanje
   for (let m = 1; m <= 12; m++) {
     const r = rows[m];
     if (r.total == null) continue;
@@ -300,9 +309,9 @@ function calcYear(y) {
     prev = r.total;
   }
   const done = rows.slice(1).filter(r => r.diff != null);
-  const sum = r2(done.reduce((s, r) => s + r.diff, 0)); // D1 = SUM(C2:C13)
+  const sum = r2(done.reduce((s, r) => s + r.diff, 0));
   const last = [...rows].reverse().find(r => r.total != null);
-  return { rows, sum, months: done.length, last: last || null, hasData: rows.some(r => r.total != null) };
+  return { rows, sum, months: done.length, last: last || null, carried: carried != null, hasData: rows.some(r => r.total != null) };
 }
 
 /* ===== SPREMANJE ===== */
@@ -325,7 +334,7 @@ function normalize(d) {
   if (!n.years || typeof n.years !== "object" || Array.isArray(n.years)) n.years = {};
   if (!Array.isArray(n.savings)) n.savings = [];
   if (!n.history || typeof n.history !== "object" || Array.isArray(n.history)) n.history = {};
-  n.year = parseInt(n.year) || thisYear;
+  delete n.year;   // stara verzija je pamtila odabranu godinu; sad se uvijek kreće od tekuće
   return n;
 }
 function applyRemote(remote) {
@@ -355,45 +364,41 @@ const setSync = msg => { $("sync-msg").textContent = msg; };
 
 /* ===== TAB 1: STANJE ===== */
 function changeYear(d) {
-  data.year += d;
-  // nova godina: ponudi početno stanje = zadnje stanje tekućeg iz prethodne godine
-  const y = data.year, arr = yearArr(y);
-  if (!data.years[y] && data.years[y - 1]) {
-    const prev = yearArr(y - 1).filter(filled);
-    if (prev.length) { arr[0] = prev[prev.length - 1]; data.years[y] = arr; }
-  }
-  lsSet(STORAGE_KEY, JSON.stringify(data));
-  render();
+  viewYear += d;
+  renderMonths();
 }
 function setMonth(m, el) {
-  const y = data.year, arr = yearArr(y);
+  const y = viewYear, arr = yearArr(y);
+  if (m === 0 && carriedStart(y) != null) return;   // početno stanje je zaključano
   arr[m] = parseNum(el.value);
   el.value = toInput(arr[m]);
   if (arr.some(v => v != null)) data.years[y] = arr; else delete data.years[y];
   saveData();
 }
 function renderMonths() {
-  const y = data.year, c = calcYear(y);
-  $("month-list").innerHTML = c.rows.map(r => `
+  const y = viewYear, c = calcYear(y);
+  $("month-list").innerHTML = c.rows.map(r => {
+    const input = r.carried
+      ? `<div class="m-carry">🔒 prijenos<br>iz ${y - 1}.</div>`
+      : `<input class="field sm" type="text" inputmode="decimal" placeholder="—" value="${toInput(r.tekuci)}"
+          aria-label="Tekući račun – ${MONTHS[r.m]}" onchange="setMonth(${r.m}, this)" onfocus="this.select()"/>`;
+    return `
     <div class="m-row${r.m === 0 ? " start" : ""}">
-      <div class="m-num">${r.m}</div>
-      <div>
-        <div class="m-name">${MONTHS[r.m]}</div>
-        <input class="field" type="text" inputmode="decimal" placeholder="—" value="${toInput(r.tekuci)}"
-          onchange="setMonth(${r.m}, this)" onfocus="this.select()"/>
-        <div class="m-extra" id="mx-${r.m}"></div>
-      </div>
+      <div class="m-num" title="${MONTHS[r.m]}">${r.m}<span class="m-short">${MONTHS_SHORT[r.m]}</span></div>
+      <div>${input}</div>
+      <div class="field sm locked" id="ms-${r.m}" title="Zaključano – računa se automatski">—</div>
       <div class="m-diff" id="md-${r.m}"></div>
-    </div>`).join("");
+    </div>`;
+  }).join("");
   renderSummary();
 }
 /* osvježi brojke bez diranja inputa (da ne smeta tipkanju) */
 function renderSummary() {
-  const y = data.year, c = calcYear(y);
+  const y = viewYear, c = calcYear(y);
   $("y-label").textContent = y;
   c.rows.forEach(r => {
-    const x = $("mx-" + r.m), d = $("md-" + r.m); if (!x) return;
-    x.textContent = r.total != null && Math.abs(r.sav) > 0.004 ? `+ štednja ${fmt(r.sav)} = ${fmt(r.total)}` : "";
+    const s = $("ms-" + r.m), d = $("md-" + r.m); if (!s) return;
+    s.textContent = r.total != null ? nf.format(r.total) : "—";
     if (r.m === 0) { d.innerHTML = r.total != null ? '<span class="mute" style="font-size:11px">POČETAK</span>' : ""; return; }
     d.className = "m-diff " + (r.diff == null ? "mute" : sign(r.diff));
     d.textContent = r.diff == null ? "—" : fmtS(r.diff);
@@ -402,14 +407,15 @@ function renderSummary() {
   $("sum-diff").textContent = fmtS(c.sum);
   $("sum-diff").className = sign(c.sum);
   const start = c.rows[0].total;
+  const startTxt = start == null ? "" : (c.carried ? `početak ${fmt(start)} (iz ${y - 1}.)` : `početak ${fmt(start)}`);
   $("h-sub").textContent = start == null
     ? "Upiši početno stanje (redak 0)"
-    : c.months ? `${c.months} ${c.months === 1 ? "mjesec" : c.months < 5 ? "mjeseca" : "mjeseci"} · početak ${fmt(start)}` : `Početak ${fmt(start)}`;
+    : c.months ? `${c.months} ${c.months === 1 ? "mjesec" : c.months < 5 ? "mjeseca" : "mjeseci"} · ${startTxt}` : startTxt.charAt(0).toUpperCase() + startTxt.slice(1);
   $("s-last").textContent = c.last ? fmt(c.last.total) : "—";
   $("s-avg").textContent = c.months ? fmtS(c.sum / c.months) : "—";
 }
 
-/* ===== TAB 2: ŠTEDNJA ===== */
+/* ===== TAB 2: ŠTEDNJA (uvijek tekuća godina) ===== */
 function addSaving() {
   const date = $("sv-date").value, amount = parseNum($("sv-amount").value);
   if (!date) { $("sv-date").focus(); return; }
@@ -427,12 +433,11 @@ function removeSaving(id) {
 }
 const fmtDate = s => { const [y, m, d] = s.split("-"); return `${+d}. ${+m}. ${y}.`; };
 function renderSavings() {
-  const y = data.year;
+  const y = thisYear;
   const inYear = data.savings.filter(s => s.date.startsWith(y + "-"));
-  const all = data.savings.reduce((s, x) => s + (Number(x.amount) || 0), 0);
   $("sv-year-lbl").textContent = "Štednja " + y;
   $("sv-year").textContent = fmt(inYear.reduce((s, x) => s + (Number(x.amount) || 0), 0));
-  $("sv-all").textContent = fmt(all);
+  $("sv-all").textContent = fmt(totalSavings());
   $("sv-count").textContent = data.savings.length ? data.savings.length + " ukupno" : "";
   const list = [...data.savings].reverse();
   $("saving-list").innerHTML = list.length ? list.map(s => `
@@ -586,8 +591,6 @@ async function initFirebaseInner() {
           }
           lsSet(UID_KEY, u.uid);
           // real-time: svaka promjena na bilo kojem uređaju odmah stiže ovdje
-          // includeMetadataChanges: true → dobijemo i događaj kad snapshot prijeđe iz cachea na server,
-          // inače "Povezujem…" ostane zauvijek kad su lokalni i cloud podaci identični
           unsubCloud = ref.onSnapshot({ includeMetadataChanges: true }, s => {
             if (s.metadata.hasPendingWrites) return;
             if (s.exists) applyRemote(s.data());
@@ -602,7 +605,6 @@ async function initFirebaseInner() {
 }
 function toggleAuth() {
   if (!firebaseReady) {
-    // pokušaj ponovno učitati Firebase (npr. mreža je tek proradila), pa javi stvarni razlog
     setSync("Učitavam Firebase…");
     initFirebase().then(() => {
       if (firebaseReady) setSync("Firebase učitan – pritisni Prijava još jednom.");
@@ -620,8 +622,6 @@ function toggleAuth() {
     ssSet(REDIRECT_KEY, "1");
     firebase.auth().signInWithRedirect(provider).catch(err => { ssSet(REDIRECT_KEY, null); fail(err); });
   };
-  // Redirect je pouzdan samo kad je auth na istoj domeni kao app (SAME_ORIGIN_AUTH).
-  // U svim ostalim slučajevima popup prvo, redirect samo kao rezerva.
   if (isStandalone() && SAME_ORIGIN_AUTH && !lsGet(REDIRECT_FAILED_KEY)) { viaRedirect(); return; }
   setSync("Otvaram Google prijavu…");
   firebase.auth().signInWithPopup(provider).catch(err => {
@@ -642,7 +642,7 @@ function resetData() {
   const msg = user ? "Obrisati sve podatke?\n\nPrijavljen si – podaci će se obrisati i u CLOUDU i na svim uređajima. Preporuka: prvo Izvezi podatke (JSON)."
                    : "Obrisati sve podatke na ovom uređaju?";
   if (!confirm(msg)) return;
-  data = defaults(); try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} render(); saveData();
+  data = defaults(); viewYear = thisYear; try { localStorage.removeItem(STORAGE_KEY); } catch (e) {} render(); saveData();
 }
 function importData(input) {
   const file = input.files && input.files[0]; input.value = "";
@@ -665,7 +665,7 @@ function syncNow() {
 $("hdr-date").textContent = new Date().toLocaleDateString("hr-HR", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
 $("sv-date").value = new Date().toISOString().slice(0, 10);
 $("sv-amount").addEventListener("keydown", e => { if (e.key === "Enter") addSaving(); });
-loadLocal(); render(); initFirebase();
+loadLocal(); viewYear = thisYear; render(); initFirebase();
 if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(() => {});
 </script>
 </body>
