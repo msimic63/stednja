@@ -156,11 +156,12 @@
 
       <div class="info-box">
         <div class="info-title">Kako radi</div>
-        <div class="info-text">Redak <b>0</b> je početno stanje godine – automatski se prenosi zadnje ukupno stanje prethodne godine, a <b>tekući račun</b> u tom retku jednak je stanju 0; oba polja su zaključana (ručno se upisuju samo za prvu godinu vođenja). U mjesecima 1–12 upisuješ stanje <b>tekućeg računa</b>; zaključano polje <b>Stanje</b> = tekući račun + ukupna štednja (sve uplate, neovisno o datumu). Razlika = stanje mjeseca − prethodno stanje.</div>
+        <div class="info-text">Redak <b>0</b> je početno stanje godine – automatski se prenosi zadnje ukupno stanje prethodne godine, a <b>tekući račun</b> u retku 0 uvijek je zaključan na 0. Stanje 0 se ručno upisuje samo za prvu godinu vođenja; inače je zaključano. U mjesecima 1–12 upisuješ stanje <b>tekućeg računa</b>; u pozadini se na tekući dodaju sve štednje. <b>Razlika</b> = stanje mjeseca − stanje prethodnog retka; zaključano polje <b>Stanje</b> = tekući račun + sve štednje.</div>
       </div>
 
       <div class="sync-status" id="sync-msg">Podaci se spremaju lokalno. Prijavi se za Cloud.</div>
       <button class="btn" type="button" onclick="syncNow()">☁️ Sinkroniziraj sada</button>
+      <div class="sync-status" style="margin-top:8px">verzija 2026-10-02c · tekući 0 = 0</div>
     </div>
 
     <!-- ===== TAB 2: ŠTEDNJA ===== -->
@@ -298,15 +299,21 @@ function calcYear(y, depth = 0) {
   const t = yearArr(y), sav = totalSavings();
   const carried = carriedStart(y, depth);
   const rows = t.map((v, m) => {
-    if (m === 0 && carried != null) return { m, tekuci: carried.tekuci, carried: true, total: carried.total, diff: null };
-    return { m, tekuci: v, carried: false, total: filled(v) ? r2(v + sav) : null, diff: null };
+    if (m === 0 && carried != null) return { m, tekuci: 0, carried: true, total: carried.total, diff: null };
+    if (m === 0) return { m, tekuci: 0, carried: false, total: filled(v) ? r2(v) : null, diff: null };   // redak 0: tekući zaključan na 0, upisuje se samo stanje 0
+    return { m, tekuci: v, carried: false, total: null, diff: null };
   });
-  let prev = rows[0].total;           // početno stanje
+  /* Izračunati iznos = tekući račun + sve štednje (i u retku 0, gdje je tekući = stanje 0).
+     Razlika = izračunati iznos mjeseca − izračunati iznos prethodnog retka.
+     Stanje = stanje prethodnog retka + razlika. */
+  let prevCalc = rows[0].total;   // siječanj se uspoređuje sa stanjem 0
   for (let m = 1; m <= 12; m++) {
     const r = rows[m];
-    if (r.total == null) continue;
-    if (prev != null) r.diff = r2(r.total - prev);
-    prev = r.total;
+    if (!filled(r.tekuci)) continue;
+    const calc = r2(r.tekuci + sav);
+    if (prevCalc != null) r.diff = r2(calc - prevCalc);
+    r.total = calc;   // stanje mjeseca = tekući + sve štednje
+    prevCalc = calc;
   }
   const done = rows.slice(1).filter(r => r.diff != null);
   const sum = r2(done.reduce((s, r) => s + r.diff, 0));
@@ -378,15 +385,19 @@ function setMonth(m, el) {
 function renderMonths() {
   const y = viewYear, c = calcYear(y);
   $("month-list").innerHTML = c.rows.map(r => {
-    const input = r.carried
-      ? `<div class="field sm locked" title="Zaključano – prenosi se iz ${y - 1}.">🔒 ${r.tekuci != null ? nf.format(r.tekuci) : "—"}</div>`
+    const input = r.m === 0
+      ? `<div class="field sm locked" id="mt-0" title="Zaključano – u retku 0 tekući je uvijek 0">🔒 ${r.tekuci != null ? nf.format(r.tekuci) : "—"}</div>`
       : `<input class="field sm" type="text" inputmode="decimal" placeholder="—" value="${toInput(r.tekuci)}"
           aria-label="Tekući račun – ${MONTHS[r.m]}" onchange="setMonth(${r.m}, this)" onfocus="this.select()"/>`;
+    const stanje = r.m === 0 && !r.carried
+      ? `<input class="field sm" type="text" inputmode="decimal" placeholder="Upiši" value="${toInput(r.total)}"
+          aria-label="Početno stanje" onchange="setMonth(0, this)" onfocus="this.select()"/>`
+      : `<div class="field sm locked" id="ms-${r.m}" title="${r.m === 0 ? "Zaključano – prenosi se iz " + (y - 1) + "." : "Zaključano – računa se automatski"}">—</div>`;
     return `
     <div class="m-row${r.m === 0 ? " start" : ""}">
       <div class="m-num" title="${MONTHS[r.m]}">${r.m}<span class="m-short">${MONTHS_SHORT[r.m]}</span></div>
       <div>${input}</div>
-      <div class="field sm locked" id="ms-${r.m}" title="Zaključano – računa se automatski">—</div>
+      <div>${stanje}</div>
       <div class="m-diff" id="md-${r.m}"></div>
     </div>`;
   }).join("");
@@ -397,8 +408,8 @@ function renderSummary() {
   const y = viewYear, c = calcYear(y);
   $("y-label").textContent = y;
   c.rows.forEach(r => {
-    const s = $("ms-" + r.m), d = $("md-" + r.m); if (!s) return;
-    s.textContent = r.total != null ? nf.format(r.total) : "—";
+    const s = $("ms-" + r.m), d = $("md-" + r.m); if (!d) return;
+    if (s) s.textContent = r.total != null ? nf.format(r.total) : "—";
     if (r.m === 0) { d.innerHTML = r.total != null ? '<span class="mute" style="font-size:11px">POČETAK</span>' : ""; return; }
     d.className = "m-diff " + (r.diff == null ? "mute" : sign(r.diff));
     d.textContent = r.diff == null ? "—" : fmtS(r.diff);
